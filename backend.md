@@ -32,7 +32,172 @@
 - [ ] what things should be added in admin dashboard?
 - [ ] what details should be returned in cloud kitchen orders route?
 - [ ] what data should be collected at signup, book-order?
+- [ ] change password reset url to point to the new frontend url.
+- [ ] what types of offers should be added? age based, pre-booking based, coupons for ordering n times, etc.
 
+### TODO (minor)
+- [ ] calculate total amount in process-order route
+- [ ] calculate age using dob
+- [ ] add validation for phone number, email, dob, userId, password
+- [ ] think about using coupons
+
+## Changes made
+- returned id while logging in.
+
+## DB Schema
+1. User
+   ```js
+    {
+      phone: {
+        type: String,
+        required: [true, "Phone number is required"],
+        unique: true,
+        minlength: [10, "Phone number must be at least 10 digits long"],
+        trim: true,
+        validate: {
+          validator: function(v) {
+            return /^(?:\+91|91|0)?[6-9]\d{9}$/.test(v); 
+          },
+          message: props => `${props.value} is not a valid phone number!`
+          // This regex makes sure that: the number starts with +91, 91 or 0, followed by a digit that starts with a  between 6-9 and then followed by 9 digits.
+        }
+      },
+      name: {
+        type: String,
+        required: [true, "Name is required"],
+        trim: true,
+        minlength: [3, "Name must be at least 3 characters long"],
+        maxlength: [50, "Name must be at most 50 characters long"],
+        validate: {
+          validator: function(v) {
+            return /^[a-zA-Z\s]+$/.test(v); 
+          },
+          message: props => `${props.value} is not a valid name!`
+          // This regex makes sure that: the name contains only alphabets and spaces.
+        }, 
+      },
+      email: {
+        type: String,
+        required: [true, "Email is required"],
+        unique: true,
+        trim: true,
+        validate: {
+          validator: function(v) {
+            return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(v);
+          },
+          message: props => `${props.value} is not a valid email!`
+          // This regex checks for a valid email format.
+        }
+      },
+      password: {
+        type: String,
+        required: [true, "Password is required"],
+        minlength: [8, "Password must be at least 8 characters long"],
+        validate: {
+          validator: function(v) {
+            return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(v); 
+          },
+          message: props => `${props.value} is not a valid password!`
+          // This regex checks for a valid password format: at least one lowercase letter, one uppercase letter, one digit, and at least 8 characters long.
+        },
+        select: false,
+      },
+      userId: {
+        type: String,
+        required: [true, "User ID is required"],
+        unique: true,
+        trim: true,
+        minlength: [6, "User ID must be at least 6 characters long"],
+        maxlength: [50, "User ID must be at most 50 characters long"],
+        validate: {
+          validator: function(v) {
+            return /^[a-zA-Z0-9]+$/.test(v);
+          },
+          message: props => `${props.value} is not a valid User ID!`
+          // This regex checks for a valid User ID format: alphanumeric characters only.
+        }
+      },
+      role: {
+        type: String,
+        enum: ["user", "admin"],
+        default: "user",
+      }
+    }
+   ```
+
+2. Product
+  ```js
+    {
+      name: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      price: {
+        type: Number,
+        required: true,
+        min: [0, "Price must be a positive number"],
+        default: 0,
+      },
+      image: {
+        type: String,
+        required: true,
+        trim: true,
+      }
+    }
+  ```
+
+3. Order
+   ```js
+    {
+      userId: {
+        ref: "User", // reference to User model
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+      },
+      items: [
+        {
+          productId: {
+            ref: "Product", // reference to Product model
+            type: mongoose.Schema.Types.ObjectId,
+            required: true,
+          },
+          quantity: {
+            type: Number,
+            required: true,
+            min: [1, "Quantity must be at least 1"],
+          },
+        }
+      ],
+      zone: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      station: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      trainDetails: {
+        trainName: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        pnr: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        seatNumber: {
+          type: String,
+          required: true,
+          trim: true,
+        }
+      }
+    }
+   ```
 
 ## Authentication
 1. Login
@@ -41,7 +206,7 @@
     ```js
       // POST
      {
-      "email": "ken@gmail.com",
+      "userId": "ken123m",
       "password": "1234567890"
      }
     ```
@@ -68,7 +233,7 @@
     // POST
     {
       "name": "Ken",
-      "dob": "01-01-1990", // or as Date object
+      "dob": "1990-01-01", // or as Date object
       "phone": "+1234567890",
       "email": "ken@gmail.com",
       "userId": "dev123",
@@ -81,8 +246,9 @@
         "message": "Signup successful",
         "token": "5367829rnvgrqvn",
         "user": {
+          "id": "45631gekmler13rf",
           "name": "Ken",
-          "dob": "01-01-1990",
+          "dob": "2005-12-14T00:00:00.000Z",
           "phone": "+1234567890",
           "email": "ken@gmail.com",
           "userId": "dev123",
@@ -95,6 +261,7 @@
    - request: {}
    - response: 
     ```js
+    // POST
       {
         "message": "Logout successful"
       }
@@ -159,7 +326,7 @@
     {
       "id": "order_Na1bCd2EfGhIjk",
       "entity": "order",
-      "amount": 50000,
+      "amount": 50000,  // returns in paise
       "amount_paid": 0,
       "amount_due": 50000,
       "currency": "INR",
@@ -182,7 +349,7 @@
         "station": "MGR Chennai Central",
         "trainDetails": {
           "trainName": "Chennai Express",
-          "PNR": "123456789012",
+          "pnr": "123456789012",
           "seatNumber": "69y"
         },
         "items": [

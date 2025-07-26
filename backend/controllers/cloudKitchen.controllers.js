@@ -1,9 +1,9 @@
-import {Orders} from "../models/index.models.js";
+import {Order} from "../models/index.models.js";
 
 export const getOrders = async (req, res) => {
   try {
-    const orders = await Orders.find().populate('userId').populate('productId');
-    
+    const orders = await Order.find().populate('userId').populate('productId');
+
     res.status(200).json({
       message: "Orders fetched successfully",
       data: orders,

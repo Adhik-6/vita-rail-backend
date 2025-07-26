@@ -24,7 +24,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/auth", authRouter);
-app.use("/api/payment", bookingRouter);
+app.use("/api/booking", bookingRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/cloud-kitchen", cloudKitchenRouter);
 

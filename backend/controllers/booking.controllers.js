@@ -3,6 +3,7 @@ import Razorpay from "razorpay";
 import axios from "axios";
 import { URLSearchParams } from "url";
 import { sendMail } from "../utils/index.utils.js";
+import { Order } from "../models/index.models.js";
 dotenv.config();
 
 const sendSms = async (req, res) => {
@@ -69,8 +70,13 @@ const razorpayInstance = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-const bookOrder = async (req, res) => {
-  const { amount, currency = "INR", items } = req.body;
+const processOrder = async (req, res) => {
+  const { currency = "INR", items } = req.body;
+
+  let amount = 0;
+  items.forEach(item => {
+    amount += item.price * item.quantity;
+  });
 
   try {
     const options = {
@@ -84,15 +90,39 @@ const bookOrder = async (req, res) => {
     };
 
     const order = await razorpayInstance.orders.create(options);
-    console.log("Razorpay order created:");
+    // console.log("Razorpay order created:");
     res.json(order);
   } catch (err) {
     res.status(500).json({ error: "Failed to create Razorpay order" });
   }
 };
 
+const bookOrder = async (req, res, next) => {
+  try {
+    const { zone, station, trainDetails, items } = req.body;
+    const userId = req.user._id;
 
-export { bookOrder, sendSms };
+    // Create the order in the database
+    const order = await Order.create({
+      userId,
+      zone,
+      station,
+      trainDetails,
+      items
+    });
+
+    res.status(201).json({
+      message: "Order booked successfully",
+    });
+  } catch (error) {
+    console.error("Error booking order:", error);
+    next(error);
+    
+  }
+}
+
+
+export { processOrder, bookOrder, sendSms };
 
 
 // const loadRazorpay = async () => {

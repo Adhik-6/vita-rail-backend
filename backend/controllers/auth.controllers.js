@@ -1,25 +1,31 @@
 import { User } from "./../models/index.models.js";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
-import nodemailer from "nodemailer";
 import { sendMail } from "../utils/index.utils.js";
 dotenv.config();
 
 const login = async (req, res) => {
-  const { email, password } = req.body;
-  const user = await User.findOne({ email });
+  const { userId, password } = req.body;
+  const user = await User.findOne({ userId }).select("+password");
   if (!user) return res.status(400).json({ message: "User not found" });
 
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) return res.status(401).json({ message: "Invalid credentials" });
+  if (!await user.comparePassword(password)) {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
 
   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
   res.json({
     message: "Login successful",
     token,
-    user: { id: user._id, name: user.name, email: user.email, name: user.name, phone: user.phone },
+    user: { 
+      id: user._id, 
+      name: user.name,
+      dob: user.dob,
+      phone: user.phone,
+      email: user.email, 
+      userId: user.userId,
+    },
   });
 };
 
@@ -30,18 +36,29 @@ const logout = (req, res) => {
 };
 
 const signup = async (req, res) => {
-  const { form } = req.body;
-  const existing = await User.findOne({ email: form.email });
+  const { name, dob, phone, email, userId, password } = req.body;
+  const existing = await User.findOne({ userId: userId });
   if (existing) return res.status(400).json({ message: "User already exists" });
 
-  const user = await User.create( form );
+  const user = await User.create({name,dob,phone,email,userId ,password });
 
   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
-  res.status(201).json({ message: "Signup successful", token, user: { id: user._id, email: user.email, name: user.name, phone: user.phone } });
+  res.status(201).json({ 
+    message: "Signup successful", 
+    token, 
+    user: { 
+      id: user._id, 
+      name: user.name,
+      dob: user.dob,
+      phone: user.phone,
+      email: user.email,
+      userId: user.userId,
+    }
+  });
 };
 
-const forgetPassword = async (req, res) => {
+const forgotPassword = async (req, res) => {
   const frontendUrl = process.env.NODE_ENV === "production" ? process.env.FRONTEND_URL : process.env.FRONTEND_URL_DEV;
   const { email } = req.body;
   try {
@@ -88,6 +105,6 @@ const resetPassword = async (req, res) => {
 
 
 
-export { login, logout, forgetPassword, signup, resetPassword };
+export { login, logout, forgotPassword, signup, resetPassword };
 
 
