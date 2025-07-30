@@ -50,6 +50,15 @@ const orderSchema = new mongoose.Schema({
       type: String,
       required: true,
       trim: true,
+    },
+    coach: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    trainNumber: {
+      type: Number,
+      required: true,
     }
   }
 }, {

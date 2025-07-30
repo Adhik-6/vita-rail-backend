@@ -13,9 +13,9 @@ const frontendUrl = process.env.NODE_ENV === "production" ? process.env.FRONTEND
 app.use(express.json());
 app.use(
   cors({
-    origin: frontendUrl,
+    origin: ["http://localhost:5173", "http://localhost:3000"],
     credentials: true,
-    methods: "GET, POST, PATCH",
+    methods: "GET, POST, PATCH, DELETE, PUT, OPTIONS",
   })
 );
 

@@ -6,30 +6,32 @@ import { sendMail } from "../utils/index.utils.js";
 import { Order } from "../models/index.models.js";
 dotenv.config();
 
-const sendSms = async (req, res) => {
-
-  const { number, email } = req.body
-  console.log("Sending SMS to:", number);
+const sendOrderConfirmation = async ({ number, email }) => {
   const smsMessage = 'Your order booking has been confirmed!';
 
   try {
-    const smsSuccess = sendFast2SMSQuickSMS([number], smsMessage);
-    const emailSuccess = sendMail({ email, subject: "Order Confirmation", html: `<p>Hooray!! Your order has been confirmed! 🎉</p>` });
-    const [emailRes, smsRes] = await Promise.all([emailSuccess, smsSuccess]);
+    // const smsPromise = sendFast2SMSQuickSMS([number], smsMessage);
+    const emailPromise = sendMail({
+      email,
+      subject: "Order Confirmation",
+      html: `<p>Hooray!! Your order has been confirmed! 🎉</p>`
+    });
+
+    // const [emailRes, smsRes] = await Promise.all([emailPromise, smsPromise]);
+    const [emailRes, smsRes] = await Promise.all([emailPromise]);
 
     let message = "Order confirmation sent via";
     if (emailRes.success) message += ` email`;
     else throw new Error(`${emailRes.message}`);
     if (smsRes) message += ` & SMS`;
-    else throw new Error(`Failed to send SMS: ${smsRes.message}`);
+    else throw new Error(`Failed to send SMS`);
 
-    res.status(200).json({ message });
-
+    return { success: true, message };
   } catch (error) {
-    console.error('An error occurred during Quick SMS initiation:', error.message);
-    res.status(500).json({ message: 'An error occurred while sending SMS.' });
+    console.error('An error occurred during order confirmation:', error.message);
+    return { success: false, message: error.message };
   }
-}
+};
 
 async function sendFast2SMSQuickSMS(numbers, message) {
   const url = 'https://www.fast2sms.com/dev/bulkV2';
@@ -40,7 +42,7 @@ async function sendFast2SMSQuickSMS(numbers, message) {
     const payload = new URLSearchParams();
     payload.append('message', message);
     payload.append('route', 'q');
-    payload.append('numbers', numbers.join(',')); // ensure comma-separated string
+    payload.append('numbers', numbers.join(','));
 
     const response = await axios.post(url, payload.toString(), {
       headers: {
@@ -49,19 +51,10 @@ async function sendFast2SMSQuickSMS(numbers, message) {
       },
     });
 
-    // console.log('Fast2SMS Quick SMS Response:', response.data);
-
-    if (response.data.return === true) {
-      // console.log('✅ Quick SMS sent successfully!');
-      return true;
-    } else {
-      console.error('❌ Fast2SMS Quick SMS failed:', response.data.message);
-      return false;
-    }
-
+    return response.data.return === true;
   } catch (error) {
     console.error('Error sending Quick SMS:', error.response?.data || error.message);
-    throw error;
+    return false;
   }
 }
 
@@ -99,10 +92,10 @@ const processOrder = async (req, res) => {
 
 const bookOrder = async (req, res, next) => {
   try {
+    // console.log("Booking order:", req.body);
     const { zone, station, trainDetails, items } = req.body;
-    const userId = req.user._id;
+    const { _id: userId, email, phone} = req.user;
 
-    // Create the order in the database
     const order = await Order.create({
       userId,
       zone,
@@ -111,18 +104,27 @@ const bookOrder = async (req, res, next) => {
       items
     });
 
+    if (email && phone) {
+      const notifyRes = await sendOrderConfirmation({ email, number: phone });
+
+      if (!notifyRes.success) {
+        console.warn("Order booked but notification failed:", notifyRes.message);
+      }
+    }
+
     res.status(201).json({
       message: "Order booked successfully",
+      orderId: order._id,
     });
   } catch (error) {
     console.error("Error booking order:", error);
     next(error);
-    
   }
-}
+};
 
 
-export { processOrder, bookOrder, sendSms };
+
+export { processOrder, bookOrder };
 
 
 // const loadRazorpay = async () => {

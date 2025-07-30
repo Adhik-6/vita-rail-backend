@@ -26,6 +26,11 @@
         } // headers - sent to backend for authentication purposes
       );
     ```
+4. Test card details for payment:
+   - Card Number: 4386 2894 0766 0153
+   - Expiry Date: Any future date
+   - CVC: Any 3-digit number
+   - Name on Card: Any name
 
 ## TODO
 - [ ] Add role field to user model if possible to get cloud kitchen, admin, customers & delivery partners in single model, what input should be given for cloud kitchen?
@@ -34,12 +39,24 @@
 - [ ] what data should be collected at signup, book-order?
 - [ ] change password reset url to point to the new frontend url.
 - [ ] what types of offers should be added? age based, pre-booking based, coupons for ordering n times, etc.
+- [ ] look into sms
 
 ### TODO (minor)
 - [ ] calculate total amount in process-order route
 - [ ] calculate age using dob
 - [ ] add validation for phone number, email, dob, userId, password
 - [ ] think about using coupons
+- [ ] open github & render account, then deploy
+- [ ] change cors origin
+- [ ] check DB schema is in sync?
+- [ ] display price in food-preference & send it accordingly to backend
+
+### Frontend Bugs
+- show selected option in each page
+- persist details across all pages
+- add forgot password & password reset features
+- unwanted page: category, menu list
+- display price in food-preference
 
 ## Changes made
 - returned id while logging in.
@@ -194,6 +211,15 @@
           type: String,
           required: true,
           trim: true,
+        },
+        coach: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        trainNumber: {
+          type: Number,
+          required: true,
         }
       }
     }
@@ -273,7 +299,7 @@
    ```js
      // POST
      {
-      "email": "ken@gmail.com"
+      "userId": "ken34"
      }
    ```
    - response:
@@ -350,7 +376,9 @@
         "trainDetails": {
           "trainName": "Chennai Express",
           "pnr": "123456789012",
-          "seatNumber": "69y"
+          "seatNumber": "69y",
+          "coach": "S1",
+          "trainNo": 2345678
         },
         "items": [
           {
